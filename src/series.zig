@@ -78,8 +78,6 @@ pub fn Series(comptime T: DataTag) type {
                 .Optional => |o| o.child,
                 else => Type,
             };
-            std.debug.print("Inner: {?}\n", .{baseType});
-            std.debug.print("Elem: {?}\n", .{Type});
 
             const isOptional = @typeInfo(Type) == .Optional;
 
