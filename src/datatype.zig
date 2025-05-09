@@ -268,6 +268,7 @@ pub fn nativeToArrow(t: type) !DataType {
     };
 }
 
+// TODO: implement for type checking
 pub fn equal(_: DataType, _: DataType) bool {
     return true;
 }

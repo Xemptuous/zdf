@@ -1,9 +1,5 @@
 const std = @import("std");
-const series = @import("series.zig");
-const datatype = @import("datatype.zig");
-const Series = series.Series;
-const TypedSeries = series.TypedSeries;
-const DataType = datatype.DataType;
+const Series = @import("series.zig").Series;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
