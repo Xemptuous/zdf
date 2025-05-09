@@ -1,24 +1,58 @@
 const std = @import("std");
+const series = @import("series.zig");
+const datatype = @import("datatype.zig");
+const Series = series.Series;
+const TypedSeries = series.TypedSeries;
+const DataType = datatype.DataType;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    {
+        const idSlice: []?i32 = try allocator.alloc(?i32, 5);
+        idSlice[0] = 1;
+        idSlice[1] = 2;
+        idSlice[2] = 23550250;
+        idSlice[3] = null;
+        idSlice[4] = 94380;
+        defer allocator.free(idSlice);
+        var s = try Series(.I32).init(allocator, .{
+            .name = "id",
+            .nullable = true,
+            .len = 5,
+        });
+        defer s.deinit();
+        try s.addSlice(idSlice);
+    }
+    _ = gpa.detectLeaks();
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+test "addSliceI32" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    const idSlice: []?i32 = try allocator.alloc(?i32, 5);
+    defer allocator.free(idSlice);
+    idSlice[0] = 0;
+    idSlice[1] = 2;
+    idSlice[2] = 23550250;
+    idSlice[3] = null;
+    idSlice[4] = 94380;
+
+    var s = try Series(.I32).init(allocator, .{
+        .name = "id",
+        .nullable = true,
+        .len = 5,
+    });
+    defer s.deinit();
+    try s.addSlice(idSlice);
+    const expectedValues = [_]u8{ 0, 0, 0, 0, 2, 0, 0, 0, 42, 89, 103, 1, 170, 170, 170, 170, 172, 112, 1, 0 };
+    const expectedValidity = [_]u1{ 1, 1, 1, 0, 1 };
+
+    const vMap = try s.expandValidityBitmapToU1();
+    defer allocator.free(vMap);
+
+    try std.testing.expect(std.mem.eql(u8, &expectedValues, s.values.items));
+    try std.testing.expect(std.mem.eql(u1, &expectedValidity, vMap));
 }
